@@ -16,7 +16,9 @@ class Agent(object):
         self.args = args
         self.values = []
         self.log_probs = []
+        self.states = []
         self.rewards = []
+        self.actions = []
         self.entropies = []
         self.done = True
         self.info = None
@@ -35,6 +37,8 @@ class Agent(object):
         log_prob = log_prob.gather(1, Variable(action))
         state, self.reward, self.done, self.info = self.env.step(
             action.cpu().numpy())
+        self.states.append(state)
+        self.actions.append(action.cpu().numpy())
         self.state = torch.from_numpy(state).float()
         if self.gpu_id >= 0:
             with torch.cuda.device(self.gpu_id):
@@ -93,5 +97,14 @@ class Agent(object):
         self.log_probs = []
         self.rewards = []
         self.entropies = []
+        self.actions = []
+        self.states = []
         return self
 
+    def save_memory(self):
+        memory = dict()
+        memory['states'] = self.states
+        memory['actions'] = self.actions
+        memory['rewards'] = self.rewards
+        with f as open('memories/mem%d.pkl'%self.eps_len, 'rb'):
+            pickle.dump(memory, f)

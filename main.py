@@ -125,6 +125,11 @@ parser.add_argument(
     default=4,
     metavar='SR',
     help='frame skip rate (default: 4)')
+parser.add_argument(
+    '--last_layer',
+    default='lstm',
+    metavar='LL',
+    help='shares optimizer choice of Adam or RMSprop')
 
 
 # Based on

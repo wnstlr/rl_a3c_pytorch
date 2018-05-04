@@ -25,8 +25,12 @@ def train(rank, args, shared_model, optimizer, env_conf):
     env.seed(args.seed + rank)
     player = Agent(None, env, args, None)
     player.gpu_id = gpu_id
-    player.model = A3Clstm(
-        player.env.observation_space.shape[0], player.env.action_space)
+    if args.last_layer == 'lstm':
+        player.model = A3Clstm(
+            player.env.observation_space.shape[0], player.env.action_space)
+    elif args.last_layer == 'mlp':
+        player.model = A3Cmlp(
+            player.env.observation_space.shape[0], player.env.action_space)
 
     player.state = player.env.reset()
     player.state = torch.from_numpy(player.state).float()
@@ -36,7 +40,7 @@ def train(rank, args, shared_model, optimizer, env_conf):
             player.model = player.model.cuda()
     player.model.train()
     player.eps_len += 2
-    while True:
+    for it in range(10000000):
         if gpu_id >= 0:
             with torch.cuda.device(gpu_id):
                 player.model.load_state_dict(shared_model.state_dict())
@@ -108,5 +112,8 @@ def train(rank, args, shared_model, optimizer, env_conf):
         torch.nn.utils.clip_grad_norm(player.model.parameters(), 100.0)
         ensure_shared_grads(player.model, shared_model, gpu=gpu_id >= 0)
         optimizer.step()
+        if (it+1) % 1000 == 0:
+            player.save_memory()
+            shared_model.save_state_dict('ckpt/ckpt_%d.pt'%it)
         player.clear_actions()
 
